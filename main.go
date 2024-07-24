@@ -4,19 +4,17 @@ import (
 	"image"
 	"image/color"
 	"image/gif"
-	p "image/color/palette"
+	"image/color/palette"
 	"io"
 	"math/cmplx"
 	"os"
 	"fmt"
 )
 
-var palette []color.Color
-var colorsMax int
+var colors []color.Color
 
 func init() {
-	palette = p.Plan9
-	colorsMax = len(palette)
+	colors = palette.Plan9
 }
 
 func main() {
@@ -27,15 +25,18 @@ func coordinateTranslate(coordinate, domainStart, domainEnd, scaleFactor float64
 	return int(((coordinate - domainStart) / (domainEnd - domainStart)) * scaleFactor)
 }
 
-func mandelbrotFrame(domainStartX, domainStartY, domainEndX, domainEndY, epsilon float64, imageDimension, iterationMax int) *image.Paletted {
+func mandelbrotFrame(domainStartX, domainStartY, domainEndX, domainEndY float64, iterationMax, imageW, imageH int) *image.Paletted {
 	var iteration int
 	var c, z complex128
 
-	rect := image.Rect(0, 0, int(imageDimension), int(imageDimension))
-	frame := image.NewPaletted(rect, palette)
+	iterX := (domainEndX - domainStartX) / float64(imageW)
+	iterY := (domainEndY - domainStartY) / float64(imageH)
 
-	for y := domainStartY; y < domainEndY; y += epsilon {
-		for x := domainStartX; x < domainEndX; x += epsilon {
+	rect := image.Rect(0, 0, int(imageW), int(imageH))
+	frame := image.NewPaletted(rect, colors)
+
+	for y := domainStartY; y < domainEndY; y += iterY {
+		for x := domainStartX; x < domainEndX; x += iterX {
 			iteration = 0
 			c = complex(x, y)
 			z = complex(0, 0)
@@ -43,9 +44,9 @@ func mandelbrotFrame(domainStartX, domainStartY, domainEndX, domainEndY, epsilon
 				z = z*z + c
 			}
 
-			frameX := coordinateTranslate(float64(x), float64(domainStartX), float64(domainEndX), float64(imageDimension))
-			frameY := coordinateTranslate(float64(y), float64(domainStartY), float64(domainEndY), float64(imageDimension))
-			frame.SetColorIndex(frameX, frameY, uint8(iteration  % colorsMax))
+			frameX := coordinateTranslate(x, domainStartX, domainEndX, float64(imageW))
+			frameY := coordinateTranslate(y, domainStartY, domainEndY, float64(imageH))
+			frame.SetColorIndex(frameX, frameY, uint8(iteration  % len(colors)))
 		}
 	}
 
@@ -55,27 +56,24 @@ func mandelbrotFrame(domainStartX, domainStartY, domainEndX, domainEndY, epsilon
 // Mandelbrot set:
 // f[c] = z^2 + c
 func mandelbrotAnimation(out io.Writer) {
-	const (
-		epsilon = 0.001
+	imageH := 1000
+	imageW := 1000
 
-		imageDimension = 2.0 * (1.0 / epsilon)
+	frameTotal := 1
+	frameDelay := 8
 
-		frameTotal = 1
-		frameDelay = 8
+	iterationMax := 255
 
-		iterationMax = 255
-
-		domainEndX = 2.0
-		domainEndY = 2.0
-		domainStartX = -2.0
-		domainStartY = -2.0
-	)
+	domainEndX := 2.0
+	domainEndY := 2.0
+	domainStartX := -2.0
+	domainStartY := -2.0
 
 	animation := gif.GIF{LoopCount: frameTotal}
 
 	for i := 0; i < frameTotal; i++ {
-		fmt.Fprintf(os.Stderr, "frame: i: %d\n", i)
-		frame := mandelbrotFrame(float64(domainStartX), float64(domainStartY), float64(domainEndX), float64(domainEndY), float64(epsilon), int(imageDimension), int(iterationMax))
+		fmt.Fprintf(os.Stderr, "frame: %d\n", i+1)
+		frame := mandelbrotFrame(float64(domainStartX), float64(domainStartY), float64(domainEndX), float64(domainEndY), int(iterationMax), imageW, imageH)
 
 		animation.Delay = append(animation.Delay, frameDelay)
 		animation.Image = append(animation.Image, frame)
