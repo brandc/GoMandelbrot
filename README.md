@@ -5,7 +5,7 @@
 
 # Description
 
-Gif image generator written in Go
+Gif image generator written in Go.
 
 # Building
 
