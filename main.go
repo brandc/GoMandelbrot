@@ -28,7 +28,7 @@ func coordinateTranslate(x, srcMin, srcMax, destMin, destMax float64) (ret float
 	return (((x - srcMin) / (srcMax - srcMin)) * (destMax - destMin)) + destMin
 }
 
-func mandelbrotFrame(dStartX, dEndX, dStartY, dEndY float64, iterMax, imgW, imgH int) *image.Paletted {
+func mandelbrotFrame(dStartX, dEndX, dStartY, dEndY, nPow float64, iterMax, imgW, imgH int) *image.Paletted {
 	// Number of fractal formula iterations
 	var iter int
 	// z[n+1] = z[n]^2 + c
@@ -49,7 +49,7 @@ func mandelbrotFrame(dStartX, dEndX, dStartY, dEndY float64, iterMax, imgW, imgH
 			c = complex(tx, ty)
 			z = complex(0, 0)
 			for iter = 0; cmplx.Abs(z) < dEndX && iter < iterMax; iter++ {
-				z = z*z + c
+				z = cmplx.Pow(z, complex(nPow, 0)) + c
 			}
 
 			frame.SetColorIndex(x, y, uint8(iter % len(colors)))
@@ -62,19 +62,22 @@ func mandelbrotFrame(dStartX, dEndX, dStartY, dEndY float64, iterMax, imgW, imgH
 // Mandelbrot set:
 // f[c] = z^2 + c
 func mandelbrotAnimation(out io.Writer) {
-	imageH := 500
-	imageW := 500
+	imageH := 2000
+	imageW := 2000
 
-	frameTotal := 1
+	frameTotal := 1000
 	frameDelay := 8
 
-	iterMax := 100000
+	iterMax := 100
 
 	animation := gif.GIF{LoopCount: frameTotal}
 
+	var nPow float64
 	for i := 0; i < frameTotal; i++ {
+		nPow = 2.0 + 10.0 * (float64(i) / float64(frameTotal))
+
 		fmt.Fprintf(os.Stderr, "frame: %d\n", i+1)
-		frame := mandelbrotFrame(mMin, mMax-1.0, mMin, mMax-1.0, int(iterMax), int(imageW), int(imageH))
+		frame := mandelbrotFrame(mMin, mMax, mMin, mMax, nPow, int(iterMax), int(imageW), int(imageH))
 
 		animation.Delay = append(animation.Delay, frameDelay)
 		animation.Image = append(animation.Image, frame)
