@@ -1,16 +1,17 @@
 package main
 
 import (
+	"bufio"
+	"fmt"
+	"flag"
+	"io"
 	"image"
 	"image/color"
 	"image/gif"
 	"image/color/palette"
-	"io"
 	"math/cmplx"
 	"os"
-	"fmt"
 	"runtime"
-	"bufio"
 )
 
 var colors []color.Color
@@ -26,10 +27,6 @@ type Frame struct {
 func init() {
 	colors = palette.Plan9
 	sema = make(chan struct{}, runtime.NumCPU())
-}
-
-func main() {
-	mandelbrotAnimation(os.Stdout)
 }
 
 // Translates x and y coordinates from one coordinate domain to another
@@ -75,34 +72,43 @@ func mandelbrotFrame(dStartX, dEndX, dStartY, dEndY, nPow float64, iterMax, imgW
 	ch <- &ret
 }
 
+func main() {
+	var dimension, frameTotal, frameDelay, iterations int = 1000, 1000, 2, 1000
+	var powerStart, powerEnd float64 = 2.0, 8.0
+
+	flag.IntVar(&dimension, "dimension", 1000, "Output image dimension.")
+	flag.IntVar(&frameTotal, "frames", 1000, "Total number of frames to render.")
+	flag.IntVar(&frameDelay, "delay", 2, "Denominates the number of 1/100ths of a seconds between frames.")
+	flag.IntVar(&iterations, "iterations", 1000, "Maximum number of iterations to use for the Mandelbrot set image generation.")
+	flag.Float64Var(&powerStart, "powerStart", 2.0, "Initial power to start the image generation with.")
+	flag.Float64Var(&powerEnd, "powerEnd", 10.0, "Last power to use with the image generation.")
+
+	if powerEnd < powerStart {
+		fmt.Fprintf(os.Stderr, "Error: powerEnd must be less than powerStart.\n")
+		return
+	}
+
+	mandelbrotAnimation(os.Stdout, dimension, frameTotal, frameDelay, iterations, powerStart, powerEnd)
+}
+
 // Mandelbrot set:
 // f[c] = z^2 + c
-func mandelbrotAnimation(out io.Writer) {
-	const (
-		// Image
-		imageH = 2000
-		imageW = 2000
-
-		// gif
-		frameTotal = 1000
-		frameDelay = 20
-
-		// Mandelbrot
-		iterMax = 100
-	)
-
-	var nPow float64
-
-	var frames []*Frame
-
-	animation := gif.GIF{LoopCount: frameTotal}
+func mandelbrotAnimation(out io.Writer, dimension, frameTotal, frameDelay, iterMax int, powerStart, powerEnd float64) {
+	imageH := dimension
+	imageW := dimension
 
 	ch := make(chan *Frame)
 
 	for i := 0; i < frameTotal; i++ {
-		nPow = 2.0 + 10.0 * (float64(i) / float64(frameTotal))
-		go mandelbrotFrame(mMin, mMax, mMin, mMax, nPow, int(iterMax), int(imageW), int(imageH), i, ch)
+		var nPow float64
+
+		nPow = ((powerEnd - powerStart) * (float64(i) / float64(frameTotal-1))) + powerStart
+
+		go mandelbrotFrame(mMin, mMax, mMin, mMax, nPow, iterMax, imageW, imageH, i, ch)
 	}
+
+	var frames []*Frame
+	animation := gif.GIF{LoopCount: frameTotal}
 
 	w := bufio.NewWriter(os.Stderr)
 	for ;len(frames) < frameTotal; {
@@ -112,6 +118,7 @@ func mandelbrotAnimation(out io.Writer) {
 		w.Flush()
 	}
 	fmt.Fprintln(w)
+	w.Flush()
 
 	for i := 0; i < len(frames); i++ {
 		for j := i+1; j < len(frames); j++ {
@@ -131,7 +138,6 @@ func mandelbrotAnimation(out io.Writer) {
 
 	gif.EncodeAll(out, &animation)
 }
-
 
 
 
