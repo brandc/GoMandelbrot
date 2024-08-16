@@ -19,7 +19,7 @@ Gif image generator written in Go.
 go run gomandelbrot.go -dimension 500 -frames 50 -delay 2 -iterations 1000 -powerStart 1.0 -powerEnd 10.0
 ```
 
-## Parameters explained
+## Parameters
 
 - dimension
 	- The height and width of the square image rendered to stdout.
