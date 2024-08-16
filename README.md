@@ -3,6 +3,10 @@
 
 # GoMandelbrot
 
+# Example Output
+
+![Rendered Output] (/brandc/GoMandelbrot/example.gif)
+
 # Description
 
 Gif image generator written in Go.
