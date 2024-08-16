@@ -5,7 +5,7 @@
 
 # Example Output
 
-![Rendered Output] (/brandc/GoMandelbrot/example.gif)
+![Rendered Output](/brandc/GoMandelbrot/example.gif)
 
 # Description
 
