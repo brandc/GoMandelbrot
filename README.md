@@ -9,7 +9,8 @@
 
 # Description
 
-Gif image generator written in Go.
+Mandelbrot fractal image generator written in Go.
+- Output written to stdout by default.
 
 # Usage
 
